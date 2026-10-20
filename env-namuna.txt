@@ -1,0 +1,18 @@
+# Bu faylni ".env" deb nomlang (nomi aynan .env bo'lsin, .txt emas!)
+
+# --- Brauzer paneli uchun ---
+ADMIN_PASSWORD=admin_uchun_kuchli_parol
+ISHCHI_PASSWORD=ishchilar_uchun_parol
+PORT=3000
+# Telegramdagi /panel tugmasi ochadigan manzil. Kompyuterda: http://localhost:3000
+# Telefondan ochish uchun kompyuter IP si (http://192.168.1.15:3000) yoki serverdagi domen (https://panel.sayt.uz)
+PUBLIC_URL=http://localhost:3000
+
+# --- Telegram bot (ixtiyoriy: yozmasangiz faqat brauzer paneli ishlaydi) ---
+BOT_TOKEN=BotFatherdan_olgan_token
+# Admin Telegram ID (@userinfobot dan bilib olinadi), bir nechta bo'lsa vergul bilan
+ADMIN_IDS=111111111
+
+TZ_OFFSET=5
+TIMEZONE=Asia/Tashkent
+REPORT_HOUR=20

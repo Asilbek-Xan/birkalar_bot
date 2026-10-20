@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Birkalar nazorati</title>
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--tx:#1b1f24;--mut:#6b7380;--bd:#e3e6eb;--pri:#2563eb;--ok:#16a34a;--bad:#dc2626}
+@media(prefers-color-scheme:dark){:root{--bg:#12151a;--card:#1b2027;--tx:#e8ebf0;--mut:#98a2b3;--bd:#2b323c;--pri:#5b8cff;--ok:#34d399;--bad:#f87171}}
+*{box-sizing:border-box}
+body{margin:0;font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx)}
+header{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:5}
+header b{font-size:16px}
+.wrap{max-width:1000px;margin:0 auto;padding:16px}
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
+.tabs button{padding:8px 14px;border:1px solid var(--bd);background:var(--card);color:var(--tx);border-radius:8px;cursor:pointer;font:inherit}
+.tabs button.on{background:var(--pri);border-color:var(--pri);color:#fff}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:14px}
+.card h3{margin:0 0 10px;font-size:15px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.stat{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px}
+.stat small{color:var(--mut)}
+.stat div{font-size:26px;font-weight:700}
+.bar{height:8px;background:var(--bd);border-radius:4px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--ok)}
+table{width:100%;border-collapse:collapse}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--bd);vertical-align:middle}
+th{color:var(--mut);font-weight:600;font-size:13px}
+.scroll{overflow-x:auto}
+input,select{font:inherit;padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);max-width:100%}
+button.b{font:inherit;padding:8px 14px;border:0;border-radius:8px;background:var(--pri);color:#fff;cursor:pointer}
+button.ok{background:var(--ok)}
+button.bad{background:var(--bad)}
+button.ghost{background:transparent;border:1px solid var(--bd);color:var(--tx)}
+button.sm{padding:5px 10px;font-size:13px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.dot{display:inline-block;width:12px;height:12px;border-radius:50%;border:1px solid #8886;margin-right:6px;vertical-align:-1px}
+.mut{color:var(--mut)}
+.msg{margin-top:8px}
+.msg.err{color:var(--bad)}
+.msg.good{color:var(--ok)}
+#toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:#111;color:#fff;padding:10px 16px;border-radius:10px;display:none;z-index:20}
+#login{max-width:340px;margin:12vh auto;padding:0 16px}
+#login input{width:100%;margin-bottom:10px}
+.hide{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="login" class="hide">
+  <div class="card">
+    <h3>🐑 Birkalar nazorati</h3>
+    <input id="lIsm" placeholder="Ismingiz (faqat ishchilar uchun)">
+    <input id="lParol" type="password" placeholder="Parol">
+    <button class="b" style="width:100%" onclick="login()">Kirish</button>
+    <div id="lMsg" class="msg err"></div>
+  </div>
+</div>
+
+<div id="app" class="hide">
+  <header>
+    <b>🐑 Birkalar nazorati</b>
+    <span><span id="who" class="mut"></span> <button class="b ghost sm" onclick="logout()">Chiqish</button></span>
+  </header>
+  <div class="wrap">
+    <div class="tabs" id="tabs"></div>
+
+    <!-- Bosh sahifa -->
+    <section id="t-home">
+      <div class="grid" id="cards"></div>
+      <div class="card"><h3>Tur va rang bo'yicha</h3><div class="scroll" id="guruh"></div></div>
+      <div class="card"><h3>Bugun chiqarilgan</h3><div id="bugunBox"></div></div>
+    </section>
+
+    <!-- Birkalar -->
+    <section id="t-list" class="hide">
+      <div class="card">
+        <div class="row">
+          <select id="fTur" onchange="resetList()"></select>
+          <select id="fRang" onchange="resetList()"></select>
+          <select id="fHolat" onchange="resetList()">
+            <option value="qolgan">Qolganlar</option>
+            <option value="bajarilgan">Bajarilganlar</option>
+            <option value="">Hammasi</option>
+          </select>
+          <input id="fQ" placeholder="Birka raqami" oninput="resetList()" style="width:130px">
+          <a href="/api/excel"><button class="b ghost sm">⬇ Excel</button></a>
+        </div>
+        <div class="scroll"><table><thead><tr><th>Birka</th><th>Tur</th><th>Rang</th><th>Holat</th><th></th></tr></thead><tbody id="rows"></tbody></table></div>
+        <div class="row" style="margin:10px 0 0;justify-content:space-between">
+          <button class="b ghost sm" onclick="page(-1)">← Oldingi</button>
+          <span id="pg" class="mut"></span>
+          <button class="b ghost sm" onclick="page(1)">Keyingi →</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Qo'shish -->
+    <section id="t-add" class="hide">
+      <div class="card">
+        <h3>📎 Excel jadval yuklash</h3>
+        <p class="mut">Ustunlar: <b>Birka | Rang | Tur</b>. <a href="/api/namuna">Namuna faylni yuklab oling</a></p>
+        <div class="row"><input type="file" id="file" accept=".xlsx"><button class="b" onclick="upload()">Yuklash</button></div>
+        <div id="upMsg" class="msg"></div>
+      </div>
+      <div class="card">
+        <h3>✍️ Yozib qo'shish</h3>
+        <div class="row">
+          <input id="aTur" placeholder="Tur (Qo'y / Mol)" style="width:150px">
+          <input id="aRang" placeholder="Rang (Sariq)" style="width:130px">
+          <input id="aFrom" placeholder="Dan (1001)" inputmode="numeric" style="width:100px">
+          <input id="aTo" placeholder="Gacha (1050)" inputmode="numeric" style="width:110px">
+          <button class="b" onclick="addRange()">Qo'shish</button>
+        </div>
+        <div id="addMsg" class="msg"></div>
+      </div>
+    </section>
+
+    <!-- Ishchilar -->
+    <section id="t-work" class="hide">
+      <div class="card"><h3>Telegram ishchilar</h3><div id="workers"></div></div>
+    </section>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+const $ = (s) => document.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const RANG = { "sariq": '#facc15', "ko'k": '#2563eb', "qizil": '#ef4444', "yashil": '#22c55e', "oq": '#ffffff', "qora": '#111827', "pushti": '#ec4899', "binafsha": '#8b5cf6', "to'q sariq": '#f97316', "kulrang": '#9ca3af', "jigarrang": '#92400e', "havorang": '#38bdf8' };
+const dot = (r) => `<i class="dot" style="background:${RANG[String(r).toLowerCase()] || '#9ca3af'}"></i>`;
+
+let me = null, tab = 'home', pageNo = 1, lastQolgan = null, timer = null;
+
+async function api(url, opt = {}) {
+  const r = await fetch(url, { credentials: 'same-origin', ...opt });
+  let d = {};
+  try { d = await r.json(); } catch (e) {}
+  if (r.status === 401 && url !== '/api/login') { showLogin(); throw new Error('login'); }
+  if (!r.ok) throw new Error(d.xato || 'Xato');
+  return d;
+}
+function toast(t) {
+  const el = $('#toast'); el.textContent = t; el.style.display = 'block';
+  clearTimeout(el._t); el._t = setTimeout(() => (el.style.display = 'none'), 3500);
+}
+function msg(sel, t, err) { const el = $(sel); el.textContent = t; el.className = 'msg ' + (err ? 'err' : 'good'); }
+
+// ---------- kirish ----------
+function showLogin() { me = null; clearInterval(timer); $('#app').classList.add('hide'); $('#login').classList.remove('hide'); }
+async function login() {
+  try {
+    me = await api('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ parol: $('#lParol').value, ism: $('#lIsm').value }) });
+    $('#lParol').value = ''; $('#lMsg').textContent = '';
+    start();
+  } catch (e) { $('#lMsg').textContent = e.message; }
+}
+async function logout() { await fetch('/api/logout', { method: 'POST' }); showLogin(); }
+
+function start() {
+  $('#login').classList.add('hide'); $('#app').classList.remove('hide');
+  $('#who').textContent = me.ism;
+  const admin = me.rol === 'admin';
+  const tabs = [['home', '📊 Bosh sahifa'], ['list', '📋 Birkalar']];
+  if (admin) tabs.push(['add', '➕ Qo\'shish'], ['work', '👷 Ishchilar']);
+  $('#tabs').innerHTML = tabs.map(([k, t]) => `<button data-k="${k}" onclick="setTab('${k}')">${t}</button>`).join('');
+  lastQolgan = null;
+  setTab(admin ? 'home' : 'list');
+  clearInterval(timer); timer = setInterval(() => loadStats(true), 20000);
+}
+function setTab(k) {
+  tab = k;
+  ['home', 'list', 'add', 'work'].forEach((x) => $('#t-' + x).classList.toggle('hide', x !== k));
+  document.querySelectorAll('#tabs button').forEach((b) => b.classList.toggle('on', b.dataset.k === k));
+  if (k === 'home') loadStats();
+  if (k === 'list') loadFilters().then(loadList);
+  if (k === 'work') loadWorkers();
+}
+
+// ---------- bosh sahifa ----------
+async function loadStats(quiet) {
+  try {
+    const d = await api('/api/stats');
+    if (lastQolgan !== null && d.qolgan > lastQolgan) {
+      toast(`🔔 Yangi vazifa: +${d.qolgan - lastQolgan} ta birka`);
+      if (tab === 'list') loadFilters().then(loadList);
+    }
+    lastQolgan = d.qolgan;
+    document.title = d.qolgan ? `(${d.qolgan}) Birkalar nazorati` : 'Birkalar nazorati';
+    const pr = d.jami ? Math.round((d.chiqarilgan / d.jami) * 100) : 0;
+    $('#cards').innerHTML =
+      `<div class="stat"><small>Jami birka</small><div>${d.jami}</div></div>` +
+      `<div class="stat"><small>Chiqarilgan</small><div style="color:var(--ok)">${d.chiqarilgan}</div><div class="bar"><i style="width:${pr}%"></i></div></div>` +
+      `<div class="stat"><small>Qolgan</small><div>${d.qolgan}</div></div>` +
+      `<div class="stat"><small>Bugun (${esc(d.kun)})</small><div>${d.bugun}</div></div>`;
+    $('#guruh').innerHTML = d.guruh.length
+      ? `<table><thead><tr><th>Tur</th><th>Rang</th><th>Jami</th><th>Chiqarilgan</th><th>Qolgan</th><th></th></tr></thead><tbody>` +
+        d.guruh.map((g) => `<tr><td>${esc(g.tur)}</td><td>${dot(g.rang)}${esc(g.rang)}</td><td>${g.n}</td><td>${g.d || 0}</td><td><b>${g.n - (g.d || 0)}</b></td>` +
+          `<td>${g.n - (g.d || 0) ? `<button class="b sm" data-t="${esc(g.tur)}" data-r="${esc(g.rang)}" onclick="goList(this.dataset.t,this.dataset.r)">Ko'rish</button>` : '✅'}</td></tr>`).join('') +
+        `</tbody></table>`
+      : '<span class="mut">Hozircha birka yo\'q. "Qo\'shish" bo\'limidan kiriting.</span>';
+    $('#bugunBox').innerHTML = d.bugun
+      ? d.bugunGuruh.map((g) => `<div>${dot(g.rang)}${esc(g.tur)} / ${esc(g.rang)}: <b>${g.n}</b> ta</div>`).join('') +
+        `<hr style="border:0;border-top:1px solid var(--bd)"><div class="mut">Ishchilar bo'yicha:</div>` +
+        d.kim.map((k) => `<div>👷 ${esc(k.kim_ism)}: <b>${k.n}</b> ta</div>`).join('')
+      : '<span class="mut">Bugun hali birka chiqarilmadi.</span>';
+  } catch (e) { if (!quiet && e.message !== 'login') toast(e.message); }
+}
+function goList(tur, rang) {
+  setTab('list');
+  loadFilters().then(() => { $('#fTur').value = tur; $('#fRang').value = rang; $('#fHolat').value = 'qolgan'; resetList(); });
+}
+
+// ---------- ro'yxat ----------
+async function loadFilters() {
+  const f = await api('/api/filtr');
+  const keep = [$('#fTur').value, $('#fRang').value];
+  $('#fTur').innerHTML = '<option value="">Barcha turlar</option>' + f.turlar.map((t) => `<option>${esc(t)}</option>`).join('');
+  $('#fRang').innerHTML = '<option value="">Barcha ranglar</option>' + f.ranglar.map((t) => `<option>${esc(t)}</option>`).join('');
+  $('#fTur').value = keep[0]; $('#fRang').value = keep[1];
+}
+function resetList() { pageNo = 1; loadList(); }
+function page(d) { pageNo = Math.max(1, pageNo + d); loadList(); }
+async function loadList() {
+  const p = new URLSearchParams({ tur: $('#fTur').value, rang: $('#fRang').value, holat: $('#fHolat').value, q: $('#fQ').value.trim(), sahifa: pageNo });
+  try {
+    const d = await api('/api/birka?' + p);
+    const admin = me.rol === 'admin';
+    const pages = Math.max(1, Math.ceil(d.total / d.limit));
+    if (pageNo > pages) { pageNo = pages; return loadList(); }
+    $('#pg').textContent = `${pageNo} / ${pages} (jami ${d.total})`;
+    $('#rows').innerHTML = d.rows.length
+      ? d.rows.map((r) => `<tr><td><b>${esc(r.raqam)}</b></td><td>${esc(r.tur)}</td><td>${dot(r.rang)}${esc(r.rang)}</td>` +
+          `<td>${r.chiqarilgan ? `<span class="mut">✅ ${esc(r.kim_ism || '')}<br>${esc(r.chiqarilgan)}</span>` : '<span>Qolgan</span>'}</td>` +
+          `<td>${r.chiqarilgan ? (admin ? `<button class="b ghost sm" onclick="undo(${r.id})">↩ Bekor</button>` : '') : `<button class="b ok sm" onclick="done(${r.id})">✅ Chiqarildi</button>`}</td></tr>`).join('')
+      : '<tr><td colspan="5" class="mut">Hech narsa topilmadi</td></tr>';
+  } catch (e) { if (e.message !== 'login') toast(e.message); }
+}
+async function done(id) {
+  try { await api(`/api/birka/${id}/done`, { method: 'POST' }); toast('Chiqarildi ✅'); } catch (e) { toast(e.message); }
+  loadList(); loadStats(true);
+}
+async function undo(id) {
+  if (!confirm('Bu birkani yana "qolgan" holatiga qaytaramizmi?')) return;
+  await api(`/api/birka/${id}/undo`, { method: 'POST' }); loadList(); loadStats(true);
+}
+
+// ---------- qo'shish ----------
+function showResult(sel, d) {
+  if (!d.yangi) return msg(sel, 'Yangi birka qo\'shilmadi (hammasi oldin bor edi).', true);
+  msg(sel, `✅ Partiya #${d.p}: ${d.yangi} ta birka qo'shildi. Ishchilarga xabar yuborildi.\n` + d.sum.map((s) => `${s.tur} / ${s.rang}: ${s.n}`).join('; '));
+}
+async function upload() {
+  const f = $('#file').files[0];
+  if (!f) return msg('#upMsg', 'Avval fayl tanlang', true);
+  try {
+    const d = await api('/api/upload', { method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }, body: await f.arrayBuffer() });
+    showResult('#upMsg', d); $('#file').value = '';
+  } catch (e) { msg('#upMsg', e.message, true); }
+}
+async function addRange() {
+  try {
+    const d = await api('/api/qosh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tur: $('#aTur').value, rang: $('#aRang').value, from: $('#aFrom').value, to: $('#aTo').value }) });
+    showResult('#addMsg', d);
+  } catch (e) { msg('#addMsg', e.message, true); }
+}
+
+// ---------- ishchilar ----------
+async function loadWorkers() {
+  const w = await api('/api/ishchilar');
+  $('#workers').innerHTML = w.length
+    ? `<table><tbody>` + w.map((x) => `<tr><td>${esc(x.ism)}</td><td>${x.rol === 'kutilmoqda' ? '<span class="mut">tasdiq kutmoqda</span>' : 'ishchi'}</td><td>` +
+        (x.rol === 'kutilmoqda' ? `<button class="b ok sm" onclick="wAct(${x.id},'approve')">✅ Tasdiqlash</button> ` : '') +
+        `<button class="b bad sm" onclick="wAct(${x.id},'remove')">❌ ${x.rol === 'kutilmoqda' ? 'Rad etish' : 'Olib tashlash'}</button></td></tr>`).join('') + `</tbody></table>`
+    : '<span class="mut">Hozircha Telegram ishchi yo\'q. Ishchilar botga /start yozsa, shu yerda ko\'rinadi.</span>';
+}
+async function wAct(id, a) { await api(`/api/ishchilar/${id}/${a}`, { method: 'POST' }); loadWorkers(); }
+
+// ---------- boshlash ----------
+$('#lParol').addEventListener('keydown', (e) => e.key === 'Enter' && login());
+api('/api/me').then((s) => { me = s; start(); }).catch(showLogin);
+</script>
+</body>
+</html>
